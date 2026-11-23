@@ -15,6 +15,8 @@ kotlin {
 }
 
 repositories {
+    // Google's mirror of Maven Central first: the same artifacts, and it doesn't rate-limit build machines.
+    maven("https://maven-central.storage-download.googleapis.com/maven2/")
     mavenCentral()
     intellijPlatform { defaultRepositories() }
 }

@@ -1,0 +1,114 @@
+package dev.latexcomments.scan
+
+/**
+ * One formula in a comment. [start]..[end] (end exclusive) cover the delimiters in the document; [latex] is the
+ * formula without delimiters (comment decoration of following lines removed, lines joined by spaces).
+ */
+data class MathSpan(val start: Int, val end: Int, val latex: String, val display: Boolean)
+
+/**
+ * Finds `$...$`, `$$...$$`, `\(...\)` and `\[...\]` in comment text, using the rules Markdown maths uses, so that
+ * prices and shell variables ("$5 and $10", "$HOME") are not mistaken for maths:
+ * an opening `$` is not followed by a space, a closing `$` is not preceded by a space nor followed by a digit,
+ * `\$` is a dollar sign, and text in `backticks` is code. Inline maths stays on one line; display maths may span lines.
+ */
+object MathFinder {
+    private const val MAX_LENGTH = 2000
+
+    fun find(text: CharSequence, comment: Comment): List<MathSpan> {
+        // The comment's text as one string, with each character's document offset.
+        val sb = StringBuilder()
+        val offsets = ArrayList<Int>()
+        comment.segments.forEachIndexed { idx, seg ->
+            if (idx > 0) { sb.append('\n'); offsets.add(seg.start) }
+            for (k in seg.start until seg.end) { sb.append(text[k]); offsets.add(k) }
+        }
+        offsets.add(comment.segments.lastOrNull()?.end ?: comment.end)
+        return findIn(sb, offsets)
+    }
+
+    /** [offsets] has one more entry than [s] (the document offset just after the last character). */
+    internal fun findIn(s: CharSequence, offsets: List<Int>): List<MathSpan> {
+        val out = ArrayList<MathSpan>()
+        var i = 0
+        val n = s.length
+        while (i < n) {
+            val c = s[i]
+            when {
+                c == '\\' && i + 1 < n && (s[i + 1] == '(' || s[i + 1] == '[') -> {
+                    val display = s[i + 1] == '['
+                    val closer = if (display) "\\]" else "\\)"
+                    val close = indexOf(s, closer, i + 2, allowNewline = display)
+                    if (close > i + 2) {
+                        out.add(span(s, offsets, i, close + 2, i + 2, close, display))
+                        i = close + 2
+                        continue
+                    }
+                    i += 2
+                }
+                c == '\\' -> i += 2 // an escaped character, such as \$
+                c == '`' -> {
+                    val close = indexOf(s, "`", i + 1, allowNewline = false)
+                    i = if (close > 0) close + 1 else i + 1
+                }
+                c == '$' && i + 1 < n && s[i + 1] == '$' -> {
+                    val close = indexOf(s, "$$", i + 2, allowNewline = true)
+                    if (close > i + 2 && s.subSequence(i + 2, close).isNotBlank()) {
+                        out.add(span(s, offsets, i, close + 2, i + 2, close, true))
+                        i = close + 2
+                        continue
+                    }
+                    i += 2
+                }
+                c == '$' -> {
+                    val close = inlineClose(s, i)
+                    if (close > 0) {
+                        out.add(span(s, offsets, i, close + 1, i + 1, close, false))
+                        i = close + 1
+                        continue
+                    }
+                    i++
+                }
+                else -> i++
+            }
+        }
+        return out
+    }
+
+    private fun inlineClose(s: CharSequence, open: Int): Int {
+        val first = open + 1
+        if (first >= s.length || s[first].isWhitespace() || s[first] == '$') return -1
+        var k = first
+        while (k < s.length && k - open < MAX_LENGTH) {
+            val ch = s[k]
+            if (ch == '\n') return -1
+            if (ch == '\\') { k += 2; continue }
+            if (ch == '$') {
+                val before = s[k - 1]
+                val after = if (k + 1 < s.length) s[k + 1] else ' '
+                if (!before.isWhitespace() && !after.isDigit() && k > first) return k
+                if (!before.isWhitespace() && after.isDigit()) return -1
+            }
+            k++
+        }
+        return -1
+    }
+
+    private fun indexOf(s: CharSequence, what: String, from: Int, allowNewline: Boolean): Int {
+        var k = from
+        while (k <= s.length - what.length && k - from < MAX_LENGTH) {
+            if (!allowNewline && s[k] == '\n') return -1
+            if (s[k] == '\\' && what != "\\]" && what != "\\)") { k += 2; continue }
+            var match = true
+            for (m in what.indices) if (s[k + m] != what[m]) { match = false; break }
+            if (match) return k
+            k++
+        }
+        return -1
+    }
+
+    private fun span(s: CharSequence, offsets: List<Int>, from: Int, to: Int, innerFrom: Int, innerTo: Int, display: Boolean): MathSpan {
+        val latex = s.subSequence(innerFrom, innerTo).toString().replace('\n', ' ').trim()
+        return MathSpan(offsets[from], offsets[to - 1] + 1, latex, display)
+    }
+}

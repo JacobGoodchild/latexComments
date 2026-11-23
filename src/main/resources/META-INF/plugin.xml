@@ -1,0 +1,7 @@
+<idea-plugin>
+  <id>dev.latexcomments</id>
+  <name>LaTeX Comments</name>
+  <vendor url="https://github.com/JacobGoodchild/latexComments">Jacob Goodchild</vendor>
+  <description><![CDATA[<p>Shows LaTeX maths in code comments as real formulas.</p>]]></description>
+  <depends>com.intellij.modules.platform</depends>
+</idea-plugin>
