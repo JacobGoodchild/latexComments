@@ -37,6 +37,6 @@ other options: Settings → Tools → LaTeX Comments. More: [user guide](docs/US
 
 ## Credits
 
-Written by Jacob Goodchild. MIT licence. Formulas are drawn by [JLaTeXMath](https://github.com/opencollab/jlatexmath)
+MIT licence (see [LICENSE](LICENSE)). Formulas are drawn by [JLaTeXMath](https://github.com/opencollab/jlatexmath)
 (GPL 2 with the classpath exception) with its Computer Modern and AMS fonts. Details:
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

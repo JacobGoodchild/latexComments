@@ -83,7 +83,7 @@ class RenderTest {
             val f = Formula.of(latex, 16f, false, font)
             assertTrue(f.isError, latex)
             assertTrue(f.error!!.startsWith(expected), "$latex -> ${f.error}")
-            assertTrue(f.error!!.length <= 75)
+            assertTrue(f.error.length <= 75)
             save(picture(f, 1f, Color.WHITE, Color.BLACK), "error-${latex.hashCode()}.png")
         }
     }
