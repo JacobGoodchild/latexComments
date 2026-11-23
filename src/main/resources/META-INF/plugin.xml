@@ -24,6 +24,10 @@
   <extensions defaultExtensionNs="com.intellij">
     <editorFactoryListener implementation="dev.latexcomments.editor.MathEditorFactoryListener"/>
     <applicationService serviceImplementation="dev.latexcomments.settings.LatexSettings"/>
+    <!-- Quick Documentation: formulas in doc comments. Languages that aren't installed are simply never asked. -->
+    <lang.documentationProvider language="JAVA" order="first" implementationClass="dev.latexcomments.doc.MathDocumentationProvider"/>
+    <lang.documentationProvider language="kotlin" order="first" implementationClass="dev.latexcomments.doc.MathDocumentationProvider"/>
+    <lang.documentationProvider language="C#" order="first" implementationClass="dev.latexcomments.doc.MathDocumentationProvider"/>
     <applicationConfigurable parentId="tools" instance="dev.latexcomments.settings.LatexConfigurable"
                              id="dev.latexcomments.settings" displayName="LaTeX Comments"/>
   </extensions>

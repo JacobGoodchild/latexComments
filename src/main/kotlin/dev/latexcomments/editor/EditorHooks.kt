@@ -1,7 +1,5 @@
 package dev.latexcomments.editor
 
-import com.intellij.codeInsight.hint.HintManager
-import com.intellij.codeInsight.hint.HintManagerImpl
 import com.intellij.codeInsight.hint.HintUtil
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -19,7 +17,9 @@ import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.LightweightHint
+import com.intellij.openapi.ui.popup.JBPopup
+import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBUI
 import dev.latexcomments.render.Formula
 import dev.latexcomments.scan.CommentSyntax
@@ -64,7 +64,7 @@ class SettingsRefresher : LatexSettings.Listener, EditorColorsListener {
 
 /** A larger picture of the formula under the mouse (rendered or raw), without taking focus. */
 class HoverPreview(private val controller: MathEditorController) : EditorMouseMotionListener {
-    private var hint: LightweightHint? = null
+    private var hint: JBPopup? = null
     private var hintFor: String? = null
 
     override fun mouseMoved(e: EditorMouseEvent) {
@@ -77,8 +77,11 @@ class HoverPreview(private val controller: MathEditorController) : EditorMouseMo
 
     private fun spanUnderMouse(e: EditorMouseEvent): MathSpan? {
         (e.inlay?.renderer as? InlineMathRenderer)?.let { return it.span }
-        val region = e.collapsedFoldRegion
-        if (region is CustomFoldRegion) {
+        val editor = e.editor
+        val point = e.mouseEvent.point
+        val region = e.collapsedFoldRegion as? CustomFoldRegion
+            ?: editor.foldingModel.getCollapsedRegionAtOffset(editor.visualPositionToOffset(editor.xyToVisualPosition(point))) as? CustomFoldRegion
+        if (region != null) {
             val r = region.renderer as? LinesMathRenderer ?: return null
             val at = region.location ?: return null
             return r.formulaAt(region, at.x.toDouble(), at.y.toDouble(), e.mouseEvent.x.toDouble(), e.mouseEvent.y.toDouble())
@@ -92,29 +95,33 @@ class HoverPreview(private val controller: MathEditorController) : EditorMouseMo
         val editor = e.editor
         val size = EditorLook.mathSize(editor) * 1.8f
         val f = EditorLook.formula(editor, span, size)
-        val color = editor.colorsScheme.defaultForeground
+        val color = com.intellij.util.ui.UIUtil.getToolTipForeground()
         val error = EditorLook.errorColor(editor)
         val pad = JBUI.scale(8)
         val component = object : JComponent() {
             init {
                 preferredSize = Dimension(f.width.toInt() + 2 * pad, f.height.toInt() + 2 * pad)
-                isOpaque = false
+                isOpaque = true
             }
             override fun paintComponent(g: Graphics) {
+                g.color = background
+                g.fillRect(0, 0, width, height)
                 EditorLook.setup(g as Graphics2D)
                 f.paint(g, pad.toFloat(), pad + f.ascent, color, error)
             }
         }
-        val panel = HintUtil.createInformationLabel("").apply { removeAll(); layout = java.awt.BorderLayout(); add(component) }
-        val h = LightweightHint(panel)
-        val p = Point(e.mouseEvent.x, e.mouseEvent.y + editor.lineHeight)
-        val flags = HintManager.HIDE_BY_ANY_KEY or HintManager.HIDE_BY_SCROLLING or HintManager.HIDE_BY_OTHER_HINT
-        HintManagerImpl.getInstanceImpl().showEditorHint(h, editor, p, flags, 0, false)
-        hint = h; hintFor = span.latex
+        component.background = HintUtil.getInformationColor()
+        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(component, null)
+            .setFocusable(false).setRequestFocus(false).setShowShadow(true).setShowBorder(true)
+            .setCancelOnClickOutside(true).setCancelKeyEnabled(true).setResizable(false).setMovable(false)
+            .createPopup()
+        val p = Point(e.mouseEvent.x + JBUI.scale(8), e.mouseEvent.y + editor.lineHeight)
+        popup.show(RelativePoint(editor.contentComponent, p))
+        hint = popup; hintFor = span.latex
     }
 
     private fun hide() {
-        hint?.hide(); hint = null; hintFor = null
+        hint?.cancel(); hint = null; hintFor = null
     }
 }
 

@@ -98,3 +98,18 @@ class RenderTest {
         assertTrue(a === Formula.of("x_{1}^2 + \\alpha_{1}", 14f, false, font))
     }
 }
+
+class DocumentationTest {
+    @Test
+    fun mathInDocPagesBecomesPictures() {
+        val html = d("<div>Rate §\\eta &lt; 1§ and <code>§x§</code>: §§\\frac{a}{b}§§ <a href=\"§no§\">x</a></div>")
+        val out = dev.latexcomments.doc.MathDocumentationProvider.withMath(html)
+        assertEquals(2, Regex("<img src=\"data:image/png;base64,").findAll(out).count(), out)
+        assertTrue(out.contains("alt=\"\\eta &lt; 1\""), out)
+        assertTrue(out.contains("<code>\$x\$</code>"), "code is left alone: $out")
+        assertTrue(out.contains("href=\"\$no\$\""), "tags are left alone: $out")
+        val img = dev.latexcomments.doc.MathDocumentationProvider.imageFor("latexcomments:i:" + java.util.Base64.getUrlEncoder().encodeToString("x^2".toByteArray())) as java.awt.image.BufferedImage
+        assertTrue(img.width > 20 && img.height > 10)
+        assertEquals(null, dev.latexcomments.doc.MathDocumentationProvider.imageFor("other.png"))
+    }
+}
