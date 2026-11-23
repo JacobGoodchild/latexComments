@@ -116,4 +116,16 @@ class EditorTest : BasePlatformTestCase() {
         settle()
         assertTrue((System.nanoTime() - t0) / 1e9 < 30)
     }
+
+    fun testRegionsKeepTheirHeightAfterTurningOffAndOn() {
+        myFixture.configureByText("Model.cs", code)
+        settle()
+        fun heights() = customRegions().sortedBy { it.startOffset }.map { it.heightInPixels to it.renderer.calcHeightInPixels(it) }
+        val before = heights()
+        assertTrue("display maths makes a taller line", before.any { it.second > editor.lineHeight * 1.5 })
+        LatexSettings.get().enabled = false; LatexSettings.get().changed(); settle()
+        LatexSettings.get().enabled = true; LatexSettings.get().changed(); settle()
+        val after = heights()
+        for ((cached, wanted) in before + after) assertEquals(wanted, cached)
+    }
 }

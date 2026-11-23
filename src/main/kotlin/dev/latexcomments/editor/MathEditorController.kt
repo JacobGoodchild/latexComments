@@ -136,6 +136,7 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
         // Inlays are added and removed outside the folding batch (the editor doesn't allow it inside).
         for ((_, sh) in toRemove) sh.inlay?.let { if (it.isValid) Disposer.dispose(it) }
         val newFolds = ArrayList<Pair<PlanItem.Inline, FoldRegion>>()
+        val newLines = ArrayList<com.intellij.openapi.editor.CustomFoldRegion>()
         folding.runBatchFoldingOperation {
             for ((item, sh) in toRemove) {
                 sh.fold?.let { if (it.isValid) folding.removeFoldRegion(it) }
@@ -147,7 +148,7 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
                     is PlanItem.Lines -> {
                         if (item.lastLine >= editor.document.lineCount) continue
                         val region = folding.addCustomLinesFolding(item.firstLine, item.lastLine, LinesMathRenderer(item))
-                        if (region != null) shown[item] = Shown(region, null)
+                        if (region != null) { shown[item] = Shown(region, null); newLines.add(region) }
                     }
                     is PlanItem.Inline -> {
                         val fold = folding.createFoldRegion(item.span.start, item.span.end, "", null, true) ?: continue
@@ -157,6 +158,8 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
                 }
             }
         }
+        // The editor measures a region while it is being added, before its place in the text is set; measure again.
+        for (r in newLines) if (r.isValid) r.update()
         for ((item, fold) in newFolds) {
             val inlay = editor.inlayModel.addInlineElement(item.span.end, false, InlineMathRenderer(item.span, item.kind))
             shown[item] = Shown(fold, inlay)
