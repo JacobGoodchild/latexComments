@@ -134,6 +134,14 @@ class MathFinderTest {
     }
 
     @Test
+    fun codeTagsInDocCommentsAreCode() {
+        assertEquals(listOf("y" to false), find("<c>§x§</c> and §y§"))
+        assertEquals(listOf("z" to false), find("<code class=\"a\">§a§ §b§</code> §z§"))
+        assertEquals(listOf("w" to false), find("<pre>\n§p§\n</pre> §w§"))
+        assertEquals(listOf("v" to false), find("<cite>§v§</cite>"))
+    }
+
+    @Test
     fun allDelimiters() {
         assertEquals(listOf("a+b" to false), find("so §a+b§."))
         assertEquals(listOf("x" to false, "y" to false), find("§x§ and §y§"))

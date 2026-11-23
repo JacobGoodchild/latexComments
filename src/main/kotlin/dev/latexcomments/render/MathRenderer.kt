@@ -83,7 +83,24 @@ class Formula private constructor(private val icon: TeXIcon?, val error: String?
         fun of(latex: String, size: Float, display: Boolean, errorFont: Font): Formula =
             cache.getOrPut(Key(latex, size, display, errorFont)) { create(latex, size, display, errorFont) }
 
+        /** Common commands JLaTeXMath doesn't know, defined once (its \\newcommand definitions are global). */
+        private val MACROS = listOf(
+            "\\newcommand{\\argmin}{\\operatorname*{argmin}}",
+            "\\newcommand{\\argmax}{\\operatorname*{argmax}}",
+            "\\newcommand{\\bm}[1]{\\boldsymbol{#1}}",
+            "\\newcommand{\\coloneqq}{\\mathrel{:=}}",
+            "\\newcommand{\\eqqcolon}{\\mathrel{=:}}",
+            "\\newcommand{\\color}[2]{\\textcolor{#1}{#2}}",
+        )
+        private val macrosDefined: Boolean by lazy {
+            synchronized(TeXFormula::class.java) {
+                for (m in MACROS) try { TeXFormula(m) } catch (_: Exception) {}
+            }
+            true
+        }
+
         private fun create(latex: String, size: Float, display: Boolean, errorFont: Font): Formula = try {
+            check(macrosDefined)
             val formula = synchronized(TeXFormula::class.java) { TeXFormula(latex) }
             val icon = formula.createTeXIcon(if (display) TeXConstants.STYLE_DISPLAY else TeXConstants.STYLE_TEXT, size)
             icon.insets = java.awt.Insets(1, 1, 1, 1)

@@ -88,6 +88,28 @@ class RenderTest {
         }
     }
 
+    /** Formulas as they appear in machine-learning and physics textbooks. */
+    @Test
+    fun textbookFormulasAllRender() {
+        val formulas = listOf(
+            "\\mathbf{y} = \\mathbf{f}[\\mathbf{x}, \\boldsymbol\\phi]",
+            "\\hat{\\boldsymbol\\phi} = \\argmin_{\\boldsymbol\\phi} \\Bigl[ L[\\boldsymbol\\phi] \\Bigr]",
+            "\\argmax_x f(x)", "\\operatorname{ReLU}[z] = \\max(0, z)", "\\bm{\\theta}", "a \\coloneqq b",
+            "\\mathbb{R}^{D}", "\\mathcal{N}(\\mu, \\sigma^2)", "\\mathbb{E}_{x \\sim p}[x]",
+            "\\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}", "\\begin{pmatrix} 1 \\\\ x \\end{pmatrix}",
+            "f(x) = \\begin{cases} 0 & x < 0 \\\\ x & x \\geq 0 \\end{cases}",
+            "\\begin{aligned} a &= b \\\\ c &= d \\end{aligned}", "\\text{if } x > 0", "\\tfrac{1}{2} \\dfrac{1}{2}",
+            "\\sqrt[3]{x}", "\\left( \\frac{a}{b} \\right)", "\\nabla_{\\phi} L", "\\| \\mathbf{x} \\|_2^2",
+            "\\sum_{i=1}^{N} \\log \\Pr(y_i | x_i)", "\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}",
+            "\\lim_{n \\to \\infty}", "\\mathbf{W}^\\top", "\\odot \\otimes \\approx \\propto \\leq \\neq",
+            "\\{ x \\mid x > 0 \\}", "\\lfloor x \\rfloor", "\\color{red}{x}", "\\underbrace{a+b}_{c}",
+            "\\varepsilon \\ell \\hbar \\omega", "\\binom{n}{k}", "\\dots \\cdots", "\\mathrm{softmax}(z)_k",
+            "\\frac{\\partial L}{\\partial \\phi_0} = 2 \\sum_i (\\phi_0 + \\phi_1 x_i - y_i)",
+        )
+        val failed = formulas.filter { Formula.of(it, 16f, true, font).isError }
+        assertEquals(emptyList<String>(), failed)
+    }
+
     @Test
     fun cachedAndQuick() {
         val t = System.nanoTime()

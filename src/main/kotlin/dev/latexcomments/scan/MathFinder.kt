@@ -47,6 +47,12 @@ object MathFinder {
                     i += 2
                 }
                 c == '\\' -> i += 2 // an escaped character, such as \$
+                c == '<' && codeTagAt(s, i) != null -> {
+                    // <c>, <code> and <pre> in documentation comments hold code, not maths.
+                    val name = codeTagAt(s, i)!!
+                    val close = indexOfIgnoreCase(s, "</$name>", i + name.length + 2)
+                    i = if (close > 0) close + name.length + 3 else i + 1
+                }
                 c == '`' -> {
                     val close = indexOf(s, "`", i + 1, allowNewline = false)
                     i = if (close > 0) close + 1 else i + 1
@@ -73,6 +79,19 @@ object MathFinder {
             }
         }
         return out
+    }
+
+    private val codeTags = listOf("code", "pre", "c")
+
+    private fun codeTagAt(s: CharSequence, i: Int): String? = codeTags.firstOrNull { t ->
+        i + t.length + 1 < s.length && s.regionMatches(i + 1, t, 0, t.length, ignoreCase = true) &&
+            (s[i + 1 + t.length] == '>' || s[i + 1 + t.length] == ' ')
+    }
+
+    private fun indexOfIgnoreCase(s: CharSequence, what: String, from: Int): Int {
+        var k = from
+        while (k <= s.length - what.length) { if (s.regionMatches(k, what, 0, what.length, ignoreCase = true)) return k; k++ }
+        return -1
     }
 
     private fun inlineClose(s: CharSequence, open: Int): Int {
