@@ -98,4 +98,22 @@ class EditorTest : BasePlatformTestCase() {
         assertEquals(1, customRegions().size)
         assertEquals(1, inlineInlays().size)
     }
+
+    fun testBigFileOnlyRendersWhatIsNearTheScreenAndTypingStaysQuick() {
+        val text = StringBuilder()
+        for (i in 0 until 20_000) text.append(d("    // step §x_{$i} = x_{${i - 1}} - \\eta \\nabla L§\n    var v$i = $i;\n"))
+        text.append("<caret>")
+        myFixture.configureByText("Big.cs", text.toString())
+        val t0 = System.nanoTime()
+        settle()
+        val regions = customRegions().size
+        assertTrue("only lines near the screen are rendered, got $regions", regions in 1..600)
+        // Typing: each keystroke only touches the document; the scan waits for a pause.
+        val t = System.nanoTime()
+        repeat(50) { myFixture.type("a") }
+        val perKeyMs = (System.nanoTime() - t) / 1e6 / 50
+        assertTrue("typing took $perKeyMs ms per key", perKeyMs < 20)
+        settle()
+        assertTrue((System.nanoTime() - t0) / 1e9 < 30)
+    }
 }

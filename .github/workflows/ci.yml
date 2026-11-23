@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      verify:
+        description: "Also build the signed Marketplace zip and run JetBrains' plugin checker against Rider 2026.1, 2026.2 and 2026.3"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Tests (scanner, maths finder, rendering, headless editor)
+        run: ./gradlew test --console=plain
+      - name: Plugin zip
+        run: ./gradlew buildPlugin --console=plain
+      - name: The zip contains the plugin, JLaTeXMath and every licence file
+        run: |
+          zip=$(ls build/distributions/latexcomments-*.zip)
+          unzip -l "$zip" | tee /tmp/zip.txt
+          for f in lib/jlatexmath-1.0.7.jar licenses/LICENSE licenses/THIRD-PARTY-NOTICES.md licenses/JLaTeXMath/LICENSE \
+                   licenses/JLaTeXMath/COPYING licenses/JLaTeXMath/OFL.txt licenses/JLaTeXMath/Knuth_License.txt; do
+            grep -q "latexcomments/$f" /tmp/zip.txt || { echo "missing $f"; exit 1; }
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latexcomments-plugin
+          path: build/distributions/latexcomments-*.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: build/reports/tests
+
+  # Started by hand (Actions > CI > Run workflow > verify). Secrets come from the repository's Settings > Secrets only.
+  marketplace:
+    if: github.event_name == 'workflow_dispatch' && inputs.verify
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Free disk space for three Rider downloads
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+      - name: Signed build and its signature check
+        env:
+          CERTIFICATE_CHAIN: ${{ secrets.CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew signPlugin verifyPluginSignature --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latexcomments-marketplace
+          path: build/distributions/*-signed.zip
+      - name: Plugin checker against Rider 2026.1, 2026.2 and 2026.3
+        run: ./gradlew verifyPlugin --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-verifier-report
+          path: build/reports/pluginVerifier
