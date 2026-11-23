@@ -38,7 +38,7 @@ A JetBrains plugin (Kotlin) that renders LaTeX maths written in code comments (`
 - Quick Documentation: the new doc viewer ignores `getLocalImageForElement`, so formulas are embedded as
   `data:image/png` pictures drawn at 2x (sharp on scaled screens), with the LaTeX as `alt` text.
 
-## Status (final for this session, 22:10 UTC, 23 Nov)
+## Status (final for this session, 22:00 UTC, 23 Nov)
 Every point of "What working means" is met and checked (tests + screenshots looked at, `docs/screenshots/`):
 - `$..$` and `$$..$$` (also `\(..\)`, `\[..\]`) in `//`, `/* */`, `///` in C#; Java, Kotlin, Python checked too;
   20+ languages in the scanner tests.
