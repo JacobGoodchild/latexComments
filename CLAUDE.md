@@ -32,13 +32,13 @@ A JetBrains plugin (Kotlin) that renders LaTeX maths written in code comments (`
 - Google's Maven Central mirror is listed first in the build: Maven Central rate-limits this build machine (429).
 - Formula colour = the comment colour of the scheme; size = editor font size x 125 % (setting).
 
-- `CustomFoldRegion` is marked experimental (the plugin checker lists 16 "experimental API" usages, all of it); it
+- `CustomFoldRegion` is marked experimental (the plugin checker lists 18 "experimental API" usages, all of it); it
   is what the platform itself uses for rendered doc comments, present since 2021.3. The stable alternative (block
   inlays above an emptied line) leaves a blank line under every formula, so the experimental API is used.
 - Quick Documentation: the new doc viewer ignores `getLocalImageForElement`, so formulas are embedded as
   `data:image/png` pictures drawn at 2x (sharp on scaled screens), with the LaTeX as `alt` text.
 
-## Status (21:50 UTC, 23 Nov)
+## Status (final for this session, 22:10 UTC, 23 Nov)
 Every point of "What working means" is met and checked (tests + screenshots looked at, `docs/screenshots/`):
 - `$..$` and `$$..$$` (also `\(..\)`, `\[..\]`) in `//`, `/* */`, `///` in C#; Java, Kotlin, Python checked too;
   20+ languages in the scanner tests.
@@ -57,4 +57,8 @@ Not checked (needs real Rider): Quick Documentation for C# (Rider's C# docs come
 is registered for language "C#" in case Rider asks the IDE side, unverified); look of rendered lines in Rider's
 C# editor (the IDE-side editor is the same component, so it should match IDEA).
 
-Ideas for later: more LaTeX coverage checks against textbook formulas; Markdown files; reader mode integration.
+Added in the quality round: `\\argmin`, `\\argmax`, `\\bm`, `\\coloneqq`, `\\color` defined (33 textbook formulas
+render without errors, tested); maths inside `<c>`, `<code>`, `<pre>` is left as code; final plugin checker run on
+the last build: Compatible with Rider 2026.1/2026.2/2026.3 (18 experimental-API usages, all `CustomFoldRegion`).
+
+Ideas for later: Markdown files; reader mode integration; check Quick Documentation for C# in real Rider.
