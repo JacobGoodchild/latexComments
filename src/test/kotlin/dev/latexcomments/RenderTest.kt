@@ -76,6 +76,7 @@ class RenderTest {
     fun badLatexBecomesAShortPlainMessage() {
         for ((latex, expected) in listOf(
             "\\foo{x}" to "LaTeX error: unknown command \\foo",
+            "\\frac{1}{\\sqroot{2}}" to "LaTeX error: unknown command \\sqroot",
             "\\begin{nothing} x" to "LaTeX error:",
             "\\left( x" to "LaTeX error:",
         )) {

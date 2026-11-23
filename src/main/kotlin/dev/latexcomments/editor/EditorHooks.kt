@@ -35,7 +35,9 @@ import javax.swing.JComponent
 class MathEditorFactoryListener : EditorFactoryListener {
     override fun editorCreated(event: EditorFactoryEvent) {
         val editor = event.editor as? EditorEx ?: return
-        if (editor.editorKind != EditorKind.MAIN_EDITOR) return
+        // Code editors only (the headless test editors have no kind set).
+        val testEditor = com.intellij.openapi.application.ApplicationManager.getApplication().isUnitTestMode && editor.editorKind == EditorKind.UNTYPED
+        if (editor.editorKind != EditorKind.MAIN_EDITOR && !testEditor) return
         val file = editor.virtualFile ?: FileDocumentManager.getInstance().getFile(editor.document) ?: return
         val syntax = CommentSyntax.forFileName(file.name) ?: return
         val controller = MathEditorController(editor, syntax)

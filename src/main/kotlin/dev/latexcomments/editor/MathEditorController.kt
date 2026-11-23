@@ -12,7 +12,6 @@ import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.event.VisibleAreaListener
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.ex.FoldingModelEx
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
 import com.intellij.util.Alarm
@@ -130,14 +129,16 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
             val lines = linesOf(item)
             lines.first <= visible.last && lines.last >= visible.first && lines.none { it in carets }
         }.toSet()
-        val folding = editor.foldingModel as FoldingModelEx
+        val folding = editor.foldingModel
         val toRemove = shown.filter { (item, s) -> item !in wanted || !s.valid }
         val toAdd = wanted.filter { it !in shown || shown[it]?.valid == false }
         if (toRemove.isEmpty() && toAdd.isEmpty()) return
+        // Inlays are added and removed outside the folding batch (the editor doesn't allow it inside).
+        for ((_, sh) in toRemove) sh.inlay?.let { if (it.isValid) Disposer.dispose(it) }
+        val newFolds = ArrayList<Pair<PlanItem.Inline, FoldRegion>>()
         folding.runBatchFoldingOperation {
-            for ((item, s) in toRemove) {
-                s.fold?.let { if (it.isValid) folding.removeFoldRegion(it) }
-                s.inlay?.let { if (it.isValid) Disposer.dispose(it) }
+            for ((item, sh) in toRemove) {
+                sh.fold?.let { if (it.isValid) folding.removeFoldRegion(it) }
                 shown.remove(item)
             }
             for (item in toAdd) {
@@ -149,25 +150,25 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
                         if (region != null) shown[item] = Shown(region, null)
                     }
                     is PlanItem.Inline -> {
-                        val fold = folding.createFoldRegion(item.span.start, item.span.end, "", null, true)
-                        if (fold == null) continue
+                        val fold = folding.createFoldRegion(item.span.start, item.span.end, "", null, true) ?: continue
                         fold.isExpanded = false
-                        val inlay = editor.inlayModel.addInlineElement(item.span.end, false, InlineMathRenderer(item.span, item.kind))
-                        shown[item] = Shown(fold, inlay)
+                        newFolds.add(item to fold)
                     }
                 }
             }
+        }
+        for ((item, fold) in newFolds) {
+            val inlay = editor.inlayModel.addInlineElement(item.span.end, false, InlineMathRenderer(item.span, item.kind))
+            shown[item] = Shown(fold, inlay)
         }
     }
 
     fun removeAll() {
         if (shown.isEmpty()) return
-        val folding = editor.foldingModel as FoldingModelEx
+        val folding = editor.foldingModel
+        for (sh in shown.values) sh.inlay?.let { if (it.isValid) Disposer.dispose(it) }
         folding.runBatchFoldingOperation {
-            for (s in shown.values) {
-                s.fold?.let { if (it.isValid) folding.removeFoldRegion(it) }
-                s.inlay?.let { if (it.isValid) Disposer.dispose(it) }
-            }
+            for (sh in shown.values) sh.fold?.let { if (it.isValid) folding.removeFoldRegion(it) }
         }
         shown.clear()
     }

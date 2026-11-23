@@ -95,13 +95,13 @@ class Formula private constructor(private val icon: TeXIcon?, val error: String?
 
         /** A short, plain message: "LaTeX error: unknown command \foo". */
         internal fun errorMessage(e: Throwable): String {
-            val raw = (e.message ?: e.javaClass.simpleName).replace(Regex("\\s+"), " ").trim()
-                .replace(Regex(" at position \\d+:\\d+.*$"), "")
-            val unknown = Regex("Unknown symbol or command or predefined TeXFormula: '([^']*)'").find(raw)
+            val all = generateSequence(e) { it.cause }.take(5).mapNotNull { it.message }.joinToString(" ").replace(Regex("\\s+"), " ").trim()
+            // The most useful part first: the command that isn't known, wherever it is in the message.
+            val unknown = Regex("Unknown symbol or command or predefined TeXFormula: '([^']*)'").find(all)
             val text = when {
                 unknown != null -> "unknown command \\" + unknown.groupValues[1]
-                raw.contains("closing '}'", ignoreCase = true) || raw.contains("missing '}'", ignoreCase = true) -> "missing }"
-                else -> raw.replaceFirstChar { it.lowercase() }
+                all.isEmpty() -> "can't read this formula"
+                else -> all.replace(Regex(" at position \\d+:\\d+"), "").replaceFirstChar { it.lowercase() }
             }
             val short = if (text.length > 60) text.take(57) + "..." else text
             return "LaTeX error: $short"
