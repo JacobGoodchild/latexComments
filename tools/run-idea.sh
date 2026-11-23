@@ -11,6 +11,7 @@ export DISPLAY=:99
 cd "$root"
 extra=()
 [ -n "${UISCALE:-}" ] && extra+=(-PuiScale="$UISCALE")
+[ -n "${OPENFILE:-}" ] && extra+=(-PopenFile="$OPENFILE")
 nohup ./gradlew runIdea -PopenPath="$1" -PtestMachine "${extra[@]}" --console=plain > "${2:-/tmp/latexcomments-runidea.log}" 2>&1 &
 # No window manager on Xvfb: once the IDE window exists, make it fill the screen.
 ( for i in $(seq 1 120); do sleep 2

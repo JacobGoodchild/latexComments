@@ -2,6 +2,42 @@
   <id>dev.latexcomments</id>
   <name>LaTeX Comments</name>
   <vendor url="https://github.com/JacobGoodchild/latexComments">Jacob Goodchild</vendor>
-  <description><![CDATA[<p>Shows LaTeX maths in code comments as real formulas.</p>]]></description>
+  <description><![CDATA[
+    <p><b>Shows LaTeX maths in code comments as real formulas, right in the editor.</b></p>
+    <p>Write maths the way books print it and read it the same way:
+    <code>// $L = \sum_i (\phi_0 + \phi_1 x_i - y_i)^2$</code> shows as a typeset formula.
+    The line under the caret shows the raw text, so editing stays easy.</p>
+    <ul>
+      <li><code>$...$</code> and <code>\(...\)</code> inline, <code>$$...$$</code> and <code>\[...\]</code> display maths
+      (which may span several comment lines).</li>
+      <li>Line, block and documentation comments in C#, Java, Kotlin, C and C++, Python, JavaScript and TypeScript,
+      Go, Rust, F#, Scala, Swift, R, Julia, Lua, SQL, MATLAB and more.</li>
+      <li>Hover over a formula for a larger preview; formulas also show in Quick Documentation for Java and Kotlin.</li>
+      <li>Turn it on or off from View or the editor's right-click menu; formula size in Settings | Tools | LaTeX Comments.</li>
+      <li>Sharp on scaled screens and in light and dark themes. Mistakes in the LaTeX show as a short note, never an error.</li>
+    </ul>
+    <p>Formulas are drawn by <a href="https://github.com/opencollab/jlatexmath">JLaTeXMath</a>
+    (GPL 2 with the classpath exception). The plugin makes no network connections. MIT licence.</p>
+  ]]></description>
   <depends>com.intellij.modules.platform</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <editorFactoryListener implementation="dev.latexcomments.editor.MathEditorFactoryListener"/>
+    <applicationService serviceImplementation="dev.latexcomments.settings.LatexSettings"/>
+    <applicationConfigurable parentId="tools" instance="dev.latexcomments.settings.LatexConfigurable"
+                             id="dev.latexcomments.settings" displayName="LaTeX Comments"/>
+  </extensions>
+
+  <applicationListeners>
+    <listener class="dev.latexcomments.editor.SettingsRefresher" topic="dev.latexcomments.settings.LatexSettings$Listener"/>
+    <listener class="dev.latexcomments.editor.SettingsRefresher" topic="com.intellij.openapi.editor.colors.EditorColorsListener"/>
+  </applicationListeners>
+
+  <actions>
+    <action id="LatexComments.Toggle" class="dev.latexcomments.editor.ToggleLatexAction"
+            text="Render LaTeX in Comments" description="Show LaTeX maths in comments as formulas, or as plain text">
+      <add-to-group group-id="ViewMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+  </actions>
 </idea-plugin>

@@ -131,7 +131,7 @@ intellijPlatformTesting {
         register("runIdea") {
             plugins { disablePlugin("com.intellij.platform.daemon") }
             task {
-                args(listOfNotNull(providers.gradleProperty("openPath").orNull))
+                args(listOfNotNull(providers.gradleProperty("openPath").orNull, providers.gradleProperty("openFile").orNull))
                 jvmArgumentProviders += CommandLineArgumentProvider {
                     listOf("-Dide.show.tips.on.startup.default.value=false", "-Djb.consents.confirmation.enabled=false",
                         "-Djb.privacy.policy.text=<!--999.999-->") +
