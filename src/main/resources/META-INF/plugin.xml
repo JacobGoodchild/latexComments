@@ -3,7 +3,7 @@
   <name>LaTeX Comments</name>
   <vendor url="https://github.com/JacobGoodchild/latexComments">Jacob Goodchild</vendor>
   <description><![CDATA[
-    <p><b>Shows LaTeX maths in code comments as real formulas, right in the editor.</b></p>
+    <p><b>Shows maths in code comments as real formulas, right in the editor.</b></p>
     <p>Write maths the way books print it and read it the same way:
     <code>// $L = \sum_i (\phi_0 + \phi_1 x_i - y_i)^2$</code> shows as a typeset formula.
     The line under the caret shows the raw text, so editing stays easy.</p>
@@ -12,6 +12,9 @@
       (which may span several comment lines).</li>
       <li>Line, block and documentation comments in C#, Java, Kotlin, C and C++, Python, JavaScript and TypeScript,
       Go, Rust, F#, Scala, Swift, R, Julia, Lua, SQL, MATLAB and more.</li>
+      <li>No LaTeX? Start the comment with <code>//=</code> and type the formula the easy way (AsciiMath):
+      <code>//= L = sum_i (phi_0 + phi_1 x_i - y_i)^2</code>. An optional automatic mode shows comment lines that
+      clearly are maths.</li>
       <li>Hover over a formula for a larger preview; formulas also show in Quick Documentation for Java and Kotlin.</li>
       <li>Turn it on or off from View or the editor's right-click menu; formula size in Settings | Tools | LaTeX Comments.</li>
       <li>Sharp on scaled screens and in light and dark themes. Mistakes in the LaTeX show as a short note, never an error.</li>

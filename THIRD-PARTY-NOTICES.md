@@ -12,3 +12,9 @@ own licence terms. JLaTeXMath's full licence (`LICENSE`, the GPL text `COPYING`)
 plugin's `licenses/JLaTeXMath` folder. Its source code is at https://github.com/opencollab/jlatexmath (tag 1.0.7) and in
 the `jlatexmath-1.0.7-sources.jar` on Maven Central. The optional Greek and Cyrillic font packages of JLaTeXMath
 (plain GPL) are not included.
+
+## AsciiMath
+
+The easy-maths notation is AsciiMath (https://asciimath.org). The converter from AsciiMath to LaTeX is this plugin's
+own code (MIT), written from the published syntax; no AsciiMath implementation is copied or shipped. (The one JVM
+port found, ASCIIMathTeXImg for Java, is GPL-3.0 without a linking exception, so it was not used.)

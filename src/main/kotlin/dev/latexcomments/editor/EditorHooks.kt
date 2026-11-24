@@ -145,7 +145,7 @@ class HoverPreview(private val controller: MathEditorController) : EditorMouseMo
         line("AsciiMath:  " + (span.original ?: ""))
         line("LaTeX:  " + span.latex)
         if (span.source == MathSource.ASCIIMATH_AUTO)
-            line("Read as maths automatically. Turn this off in Settings | Tools | LaTeX Comments.", muted = true)
+            line("Read as maths automatically. Turn this off in Settings > Tools > LaTeX Comments.", muted = true)
         return panel
     }
 

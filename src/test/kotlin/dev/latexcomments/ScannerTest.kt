@@ -178,6 +178,12 @@ class MarkerTest {
     }
 
     @Test
+    fun aMarkedBlockIsMathsOnEveryLine() {
+        val code = "/*= theta := theta - eta grad L\n    p(x) = 1/sqrt(2 pi)\n\n    = y^2 */\n/* plain\n   x^2 */"
+        assertEquals(listOf("theta := theta - eta grad L", "p(x) = 1/sqrt(2 pi)", "y^2"), spans(code, CommentSyntax.CSHARP).map { it.original })
+    }
+
+    @Test
     fun theMarkerStartsAtTheEqualsSign() {
         val code = "    //= x^2\n"
         val s = spans(code, CommentSyntax.CSHARP).single()

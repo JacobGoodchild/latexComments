@@ -30,9 +30,16 @@ object MathFinder {
         val out = ArrayList<MathSpan>()
         // Lines marked as AsciiMath ("//= ...", " * = ...") are whole formulas.
         val rest = ArrayList<Segment>()
+        // "/*= ... */": a block comment whose first line is marked is maths on every line.
+        val wholeBlock = options.markers && !comment.lineStyle && comment.segments.isNotEmpty() &&
+            markedLine(text, comment.segments[0], allowIndent = false) != null
         for (seg in comment.segments) {
-            val marked = if (options.markers) markedLine(text, seg, allowIndent = !comment.lineStyle) else null
-            if (marked != null) out.add(marked) else rest.add(seg)
+            val marked = when {
+                !options.markers -> null
+                wholeBlock -> markedLine(text, seg, allowIndent = true) ?: plainLine(text, seg)
+                else -> markedLine(text, seg, allowIndent = !comment.lineStyle)
+            }
+            if (marked != null) out.add(marked) else if (!wholeBlock) rest.add(seg)
         }
         if (rest.isEmpty()) return out
         // The other lines as one string (so $$ can span lines), with each character's document offset.
@@ -73,6 +80,19 @@ object MathFinder {
         // "$" means LaTeX: such lines keep working exactly as before.
         if (source.none { it.isLetterOrDigit() } || '$' in source) return null
         return MathSpan(eq, b, dev.latexcomments.asciimath.AsciiMath.toLatex(source), display = true,
+            source = MathSource.ASCIIMATH, original = source)
+    }
+
+    /** A line inside a "/*= ... */" block: the whole line (without its indent) is the formula. */
+    private fun plainLine(text: CharSequence, seg: Segment): MathSpan? {
+        var a = seg.start
+        while (a < seg.end && text[a].isWhitespace()) a++
+        var b = seg.end
+        while (b > a && text[b - 1].isWhitespace()) b--
+        if (a >= b) return null
+        val source = text.subSequence(a, b).toString()
+        if (source.none { it.isLetterOrDigit() } || '$' in source) return null
+        return MathSpan(a, b, dev.latexcomments.asciimath.AsciiMath.toLatex(source), display = true,
             source = MathSource.ASCIIMATH, original = source)
     }
 

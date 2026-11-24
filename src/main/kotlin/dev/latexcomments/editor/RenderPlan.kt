@@ -74,7 +74,9 @@ object RenderPlan {
                 val first = index.lineOf(s.start)
                 val last = index.lineOf(maxOf(s.start, s.end - 1))
                 if (commentOnly(c, index, first, last)) lineSpans.add(s)
-                else if (trailing && first == last) out.add(PlanItem.Inline(s, c.kind, first))
+                // After code, AsciiMath uses the compact inline style so it fits the line.
+                else if (trailing && first == last) out.add(PlanItem.Inline(
+                    if (s.source == dev.latexcomments.scan.MathSource.LATEX) s else s.copy(display = false), c.kind, first))
             }
             out.addAll(groupLines(lineSpans, index, c.kind))
         }

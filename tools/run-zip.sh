@@ -5,7 +5,7 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 ide="$(ls -d "$HOME"/.gradle/caches/*/transforms/*/transformed/idea-2026.1.5.1 | head -1)"
-zip="$(ls "$root"/build/distributions/latexcomments-*.zip | head -1)"
+zip="$(ls -t "$root"/build/distributions/latexcomments-*.zip | head -1)"
 profile="${ZIP_PROFILE:-/tmp/latexcomments-zip-profile}"
 rm -rf "$profile"; mkdir -p "$profile/plugins" "$profile/config/options"
 unzip -q "$zip" -d "$profile/plugins"

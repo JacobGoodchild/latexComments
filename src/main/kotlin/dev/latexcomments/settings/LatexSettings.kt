@@ -64,7 +64,7 @@ class LatexConfigurable : Configurable {
     override fun createComponent(): JComponent {
         val s = LatexSettings.get()
         return panel {
-            row { checkBox("Show LaTeX in comments as formulas").bindSelected(s::enabled)
+            row { checkBox("Show maths in comments as formulas").bindSelected(s::enabled)
                 .comment("Write \$...\$ or \$\$...\$\$ in a comment. The line under the caret shows the raw text for editing.") }
             row("Formula size:") {
                 intTextField(LatexSettings.MIN_SIZE..LatexSettings.MAX_SIZE).bindIntText(s::sizePercent).gap(com.intellij.ui.dsl.builder.RightGap.SMALL)
@@ -76,7 +76,7 @@ class LatexConfigurable : Configurable {
             group("Easy maths (no LaTeX needed)") {
                 row { checkBox("Lines starting with //= are maths").bindSelected(s::asciiMathLines)
                     .comment("Write maths the way you would type it: //= L = sum_i (phi_0 + phi_1 x_i - y_i)^2. " +
-                        "Also #=, ///= and * = in block comments. The notation is called AsciiMath.") }
+                        "Also #= and ///= lines, and /*= for a whole block comment. The notation is called AsciiMath.") }
                 row { checkBox("Also show other comment lines as maths when they clearly are").bindSelected(s::autoDetect)
                     .comment("Off by default. Only lines like x^2 + y^2 = r^2 or sigma = sqrt(v) are shown; " +
                         "anything that looks like code, a name or a note is left alone. Hover over a formula to see how it was read.") }
