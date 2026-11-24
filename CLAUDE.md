@@ -20,6 +20,11 @@ A JetBrains plugin (Kotlin) that renders LaTeX maths written in code comments (`
   changes redraw. Inlays are added/removed outside the folding batch (the platform forbids it inside).
 - `render/Formula`: JLaTeXMath typesetting, LRU cache, errors -> "LaTeX error: unknown command \foo".
 - Settings > Tools > LaTeX Comments; View > Render LaTeX in Comments (also editor right-click menu).
+- Easy maths (0.2.0): `asciimath/AsciiMath` converts AsciiMath to LaTeX (then the same JLaTeXMath path, cache and
+  error notes). `MathFinder.markedLine`: a comment line starting with "= " right after the marker (`//=`, `///=`, `#=`,
+  `--=`, `%=`) or, in block/doc comments, after the decoration (` * = `); `/*=` makes every line of that block a
+  formula. `MathGuess`: the optional automatic detector (off by default). `MathSpan.source`/`original` feed the
+  hover readout (AsciiMath + LaTeX, plus a note for automatic finds).
 
 ## Decisions
 - JLaTeXMath 1.0.7 (GPL-2.0+ with classpath exception, checked in the jar's META-INF/LICENSE) over KaTeX/MathJax in
@@ -38,7 +43,31 @@ A JetBrains plugin (Kotlin) that renders LaTeX maths written in code comments (`
 - Quick Documentation: the new doc viewer ignores `getLocalImageForElement`, so formulas are embedded as
   `data:image/png` pictures drawn at 2x (sharp on scaled screens), with the LaTeX as `alt` text.
 
-## Status (final for this session, 22:00 UTC, 23 Nov)
+## Easy maths decisions (24 Nov)
+- Own AsciiMath converter, written from the published grammar (S/I/E) and symbol list on asciimath.org. The only
+  JVM port found (ASCIIMathTeXImg for Java) is GPL-3.0 without a linking exception, so not usable in an MIT plugin;
+  its code was not read. Tested against the asciimath.org examples (all render, picture looked at).
+- Deliberate differences from AsciiMath: unknown letter runs of 3+ letters show upright as names (`softmax`, `MSE`);
+  a known name must be the whole run or the run plus one letter (`dotx`, `ulA`), so `index` is not "in dex".
+  `cancel` is drawn with `\not` (JLaTeXMath has no `\cancel`); `argmin` uses `\mathop{\mathrm{argmin}}`.
+- Marker needs a space after "=" (so `//=====` separators are left alone). A marked line containing `$` stays LaTeX,
+  so the `$...$` behaviour is exactly as before. Julia's `#=` is its block comment, so no marker there.
+- Marked lines use display style; AsciiMath after code uses inline style so it isn't shrunk too much.
+- Automatic mode: off by default; any code clue (operators, calls, `snake_case`/`camelCase`, paths, links,
+  TODO/Note:, tags, list items) or two ordinary words rejects a line; needs strong maths signs (Greek names,
+  sum/sqrt/int/lim, powers of numbers or brackets) plus a relation, or several signs. A found formula that wouldn't
+  render is skipped. Weak cases (`y = W x + b`, `a_(n+1) = a_n + d`) are missed on purpose (tested).
+- Quick Documentation only renders `$...$` LaTeX, not easy-maths lines (they need the comment's line structure).
+
+## Status (24 Nov, 0.2.0)
+Easy maths done and checked: 70+ new tests (converter incl. asciimath.org examples, markers in every comment style,
+separators, LaTeX unchanged, 60+ real non-maths comments left alone, 11 formulas found, headless editor test);
+IDE screenshots with the built 0.2.0 zip: marked lines, `/*=` block, after-code formula, hover readout, settings
+page, automatic mode on (`docs/screenshots/easy-maths-*`, `settings-easy-maths-*`). Plugin checker on the 0.2.0
+build: Compatible with Rider 2026.1/2026.2/2026.3 (same 18 `CustomFoldRegion` experimental-API notes, nothing new).
+Not checked in real Rider: easy maths in Rider's C# editor (same IDE-side editor, so it should match IDEA).
+
+## Status (final for the first session, 22:00 UTC, 23 Nov)
 Every point of "What working means" is met and checked (tests + screenshots looked at, `docs/screenshots/`):
 - `$..$` and `$$..$$` (also `\(..\)`, `\[..\]`) in `//`, `/* */`, `///` in C#; Java, Kotlin, Python checked too;
   20+ languages in the scanner tests.
