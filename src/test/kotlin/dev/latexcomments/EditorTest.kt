@@ -37,7 +37,11 @@ class EditorTest : BasePlatformTestCase() {
     private fun inlineInlays() = editor.inlayModel.getInlineElementsInRange(0, editor.document.textLength, InlineMathRenderer::class.java)
 
     override fun tearDown() {
-        try { LatexSettings.get().enabled = true } finally { super.tearDown() }
+        try {
+            LatexSettings.get().enabled = true
+            LatexSettings.get().autoDetect = false
+            LatexSettings.get().asciiMathLines = true
+        } finally { super.tearDown() }
     }
 
     fun testRendersCommentsAndKeepsTheCaretLineRaw() {
@@ -127,5 +131,21 @@ class EditorTest : BasePlatformTestCase() {
         LatexSettings.get().enabled = true; LatexSettings.get().changed(); settle()
         val after = heights()
         for ((cached, wanted) in before + after) assertEquals(wanted, cached)
+    }
+
+    fun testEasyMathsLinesAndAutomaticMode() {
+        val text = "//= L = sum_i (phi_0 + phi_1 x_i - y_i)^2\n// x^2 + y^2 = r^2\n// max_value ^ mask\nvar a = 1; //= a^2\n<caret>var b = 2;\n"
+        myFixture.configureByText("Easy.cs", text)
+        settle()
+        // The marked line is drawn; the unmarked formula is not (automatic mode is off by default).
+        assertEquals(listOf(0), customRegions().map { editor.document.getLineNumber(it.startOffset) })
+        assertEquals(1, inlineInlays().size)
+        LatexSettings.get().autoDetect = true; LatexSettings.get().changed(); settle()
+        assertEquals(listOf(0, 1), customRegions().map { editor.document.getLineNumber(it.startOffset) }.sorted())
+        // Both off: only $...$ LaTeX would be drawn, and this file has none.
+        LatexSettings.get().autoDetect = false
+        LatexSettings.get().asciiMathLines = false; LatexSettings.get().changed(); settle()
+        assertEquals(0, customRegions().size)
+        assertEquals(0, inlineInlays().size)
     }
 }

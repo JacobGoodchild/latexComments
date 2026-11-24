@@ -102,6 +102,8 @@ class LinesMathRenderer(private val item: PlanItem.Lines) : CustomFoldRegionRend
         while (k < end) {
             val s = spans.getOrNull(si)
             if (s != null && k == s.start) {
+                // "//= x^2" shows as "// x²": the formula replaces the "=", with a space after the comment marker.
+                if (s.source != dev.latexcomments.scan.MathSource.LATEX && sb.isNotEmpty() && !sb.last().isWhitespace()) sb.append(' ')
                 if (sb.isNotEmpty()) { pieces.add(sb.toString()); sb.setLength(0) }
                 pieces.add(s)
                 k = s.end; si++

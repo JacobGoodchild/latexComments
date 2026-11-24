@@ -23,6 +23,7 @@ import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBUI
 import dev.latexcomments.render.Formula
 import dev.latexcomments.scan.CommentSyntax
+import dev.latexcomments.scan.MathSource
 import dev.latexcomments.scan.MathSpan
 import dev.latexcomments.settings.LatexSettings
 import java.awt.Dimension
@@ -111,7 +112,8 @@ class HoverPreview(private val controller: MathEditorController) : EditorMouseMo
             }
         }
         component.background = HintUtil.getInformationColor()
-        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(component, null)
+        val content = if (span.source == MathSource.LATEX) component else readingPanel(component, span)
+        val popup = JBPopupFactory.getInstance().createComponentPopupBuilder(content, null)
             .setFocusable(false).setRequestFocus(false).setShowShadow(true).setShowBorder(true)
             .setCancelOnClickOutside(true).setCancelKeyEnabled(true).setResizable(false).setMovable(false)
             .createPopup()
@@ -123,6 +125,31 @@ class HoverPreview(private val controller: MathEditorController) : EditorMouseMo
     private fun hide() {
         hint?.cancel(); hint = null; hintFor = null
     }
+
+    /** Under an AsciiMath formula: how it was read, so a misreading is easy to spot. Plain text, never HTML. */
+    private fun readingPanel(formula: JComponent, span: MathSpan): JComponent {
+        val panel = javax.swing.JPanel()
+        panel.layout = javax.swing.BoxLayout(panel, javax.swing.BoxLayout.Y_AXIS)
+        panel.background = HintUtil.getInformationColor()
+        panel.border = JBUI.Borders.emptyBottom(8)
+        formula.alignmentX = 0f
+        panel.add(formula)
+        fun line(text: String, muted: Boolean = false) {
+            val label = com.intellij.ui.components.JBLabel(plain(text))
+            label.alignmentX = 0f
+            label.border = JBUI.Borders.empty(1, 8)
+            label.font = com.intellij.util.ui.JBFont.small()
+            if (muted) label.foreground = com.intellij.util.ui.UIUtil.getContextHelpForeground()
+            panel.add(label)
+        }
+        line("AsciiMath:  " + (span.original ?: ""))
+        line("LaTeX:  " + span.latex)
+        if (span.source == MathSource.ASCIIMATH_AUTO)
+            line("Read as maths automatically. Turn this off in Settings | Tools | LaTeX Comments.", muted = true)
+        return panel
+    }
+
+    private fun plain(s: String) = if (s.trimStart().startsWith("<html", ignoreCase = true)) "\u200B$s" else s
 }
 
 /** View > Render LaTeX in Comments (also in the editor's right-click menu). */

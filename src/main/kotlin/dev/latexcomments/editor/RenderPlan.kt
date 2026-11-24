@@ -62,11 +62,12 @@ class LineIndex(private val text: CharSequence) {
 }
 
 object RenderPlan {
-    fun plan(text: CharSequence, syntax: CommentSyntax, trailing: Boolean = true): List<PlanItem> {
+    fun plan(text: CharSequence, syntax: CommentSyntax, trailing: Boolean = true,
+             options: dev.latexcomments.scan.FindOptions = dev.latexcomments.scan.FindOptions()): List<PlanItem> {
         val index = LineIndex(text)
         val out = ArrayList<PlanItem>()
         for (c in CommentScanner.scan(text, syntax)) {
-            val spans = MathFinder.find(text, c)
+            val spans = MathFinder.find(text, c, options)
             if (spans.isEmpty()) continue
             val lineSpans = ArrayList<MathSpan>()
             for (s in spans) {

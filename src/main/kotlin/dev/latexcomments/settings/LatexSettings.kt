@@ -23,6 +23,10 @@ class LatexSettings : PersistentStateComponent<LatexSettings.Data> {
         /** Also render maths in comments that follow code on the same line (drawn at line height). */
         var trailingComments: Boolean = true
         var hoverPreview: Boolean = true
+        /** Lines starting with "//=" (or "#=", " * = " ...) are AsciiMath. */
+        var asciiMathLines: Boolean = true
+        /** Read unmarked comment lines as AsciiMath when they are clearly maths. Off by default. */
+        var autoDetect: Boolean = false
     }
 
     private var data = Data()
@@ -35,6 +39,8 @@ class LatexSettings : PersistentStateComponent<LatexSettings.Data> {
         set(v) { data.sizePercent = v.coerceIn(MIN_SIZE, MAX_SIZE) }
     var trailingComments by data::trailingComments
     var hoverPreview by data::hoverPreview
+    var asciiMathLines by data::asciiMathLines
+    var autoDetect by data::autoDetect
 
     /** Tells every open editor to redraw. */
     fun changed() = ApplicationManager.getApplication().messageBus.syncPublisher(TOPIC).settingsChanged()
@@ -67,6 +73,14 @@ class LatexConfigurable : Configurable {
             row { checkBox("Also in comments after code on the same line").bindSelected(s::trailingComments)
                 .comment("Those formulas are shrunk to fit the line.") }
             row { checkBox("Show a larger preview when the mouse is over a formula").bindSelected(s::hoverPreview) }
+            group("Easy maths (no LaTeX needed)") {
+                row { checkBox("Lines starting with //= are maths").bindSelected(s::asciiMathLines)
+                    .comment("Write maths the way you would type it: //= L = sum_i (phi_0 + phi_1 x_i - y_i)^2. " +
+                        "Also #=, ///= and * = in block comments. The notation is called AsciiMath.") }
+                row { checkBox("Also show other comment lines as maths when they clearly are").bindSelected(s::autoDetect)
+                    .comment("Off by default. Only lines like x^2 + y^2 = r^2 or sigma = sqrt(v) are shown; " +
+                        "anything that looks like code, a name or a note is left alone. Hover over a formula to see how it was read.") }
+            }
         }.also { panel = it }
     }
 

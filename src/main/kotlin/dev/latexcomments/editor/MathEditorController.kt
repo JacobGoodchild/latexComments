@@ -61,6 +61,14 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
         alarm.addRequest({ if (pendingRescan) { pendingRescan = false; rescan() } else apply() }, delay)
     }
 
+    private fun findOptions(): dev.latexcomments.scan.FindOptions {
+        val s = LatexSettings.get()
+        val font = editor.colorsScheme.getFont(com.intellij.openapi.editor.colors.EditorFontType.PLAIN)
+        // An automatically found formula that wouldn't render is left as text (a mistake shouldn't show as an error).
+        return dev.latexcomments.scan.FindOptions(markers = s.asciiMathLines, auto = s.autoDetect,
+            accept = { latex -> !dev.latexcomments.render.Formula.of(latex, 14f, false, font).isError })
+    }
+
     /** Scans the text in the background, then shows the result. */
     fun rescan() {
         if (!LatexSettings.get().enabled) { removeAll(); return }
@@ -68,7 +76,7 @@ class MathEditorController(val editor: EditorEx, private val syntax: CommentSynt
         val trailing = LatexSettings.get().trailingComments
         ReadAction.nonBlocking<Pair<Long, List<PlanItem>>> {
             val stamp = document.modificationStamp
-            stamp to RenderPlan.plan(document.immutableCharSequence, syntax, trailing)
+            stamp to RenderPlan.plan(document.immutableCharSequence, syntax, trailing, findOptions())
         }.expireWith(this).coalesceBy(this)
             .finishOnUiThread(ModalityState.any()) { (stamp, items) ->
                 if (stamp != document.modificationStamp) { schedule(rescan = true, delay = 100); return@finishOnUiThread }
