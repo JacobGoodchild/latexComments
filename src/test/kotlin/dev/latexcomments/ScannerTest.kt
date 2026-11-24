@@ -161,3 +161,45 @@ class MathFinderTest {
         assertFalse(m.display)
     }
 }
+
+class MarkerTest {
+    private fun spans(code: String, syntax: CommentSyntax) =
+        CommentScanner.scan(d(code), syntax).flatMap { MathFinder.find(d(code), it) }
+
+    @Test
+    fun lineMarkersInEveryCommentStyle() {
+        val cs = spans("//= L = sum_i (phi_0 + phi_1 x_i - y_i)^2\nvar a = 1; //= a^2\n///= x/2\n/*= sqrt(x) */\n/**\n * Prose line.\n * = int_0^1 x dx\n */", CommentSyntax.CSHARP)
+        assertEquals(listOf("L = sum_i (phi_0 + phi_1 x_i - y_i)^2", "a^2", "x/2", "sqrt(x)", "int_0^1 x dx"), cs.map { it.original })
+        assertTrue(cs.all { it.source == dev.latexcomments.scan.MathSource.ASCIIMATH && it.display })
+        assertEquals("\\frac{x}{2}", cs[2].latex)
+        assertEquals(listOf("x^2"), spans("x = 1  #= x^2\n", CommentSyntax.PYTHON).map { it.original })
+        assertEquals(listOf("x^2"), spans("--= x^2\n", CommentSyntax.SQL).map { it.original })
+        assertEquals(listOf("x^2"), spans("%= x^2\n", CommentSyntax.MATLAB).map { it.original })
+    }
+
+    @Test
+    fun theMarkerStartsAtTheEqualsSign() {
+        val code = "    //= x^2\n"
+        val s = spans(code, CommentSyntax.CSHARP).single()
+        assertEquals("= x^2", code.substring(s.start, s.end))
+    }
+
+    @Test
+    fun separatorsAndOrdinaryCommentsAreNotMarked() {
+        for (c in listOf("//=====\n", "//==== Section ====\n", "// = 5 after the loop\n", "//=\n", "//= \n", "//= ---\n", "/*=======*/\n"))
+            assertEquals(emptyList<Any>(), spans(c, CommentSyntax.CSHARP), c)
+    }
+
+    @Test
+    fun latexKeepsWorkingExactlyAsBefore() {
+        val s = spans("//= §x^2§\n// §\\alpha§ and §§\\beta§§\n", CommentSyntax.CSHARP)
+        assertEquals(listOf("x^2", "\\alpha", "\\beta"), s.map { it.latex })
+        assertTrue(s.all { it.source == dev.latexcomments.scan.MathSource.LATEX })
+    }
+
+    @Test
+    fun markersCanBeTurnedOff() {
+        val code = "//= x^2\n"
+        assertEquals(0, CommentScanner.scan(code, CommentSyntax.CSHARP).flatMap { MathFinder.find(code, it, dev.latexcomments.scan.FindOptions(markers = false)) }.size)
+    }
+}

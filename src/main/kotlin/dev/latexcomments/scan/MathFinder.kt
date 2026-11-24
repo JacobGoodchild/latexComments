@@ -4,7 +4,18 @@ package dev.latexcomments.scan
  * One formula in a comment. [start]..[end] (end exclusive) cover the delimiters in the document; [latex] is the
  * formula without delimiters (comment decoration of following lines removed, lines joined by spaces).
  */
-data class MathSpan(val start: Int, val end: Int, val latex: String, val display: Boolean)
+data class MathSpan(
+    val start: Int, val end: Int, val latex: String, val display: Boolean,
+    /** How the formula was written: LaTeX between `$`s, AsciiMath on a `//=` line, or AsciiMath read automatically. */
+    val source: MathSource = MathSource.LATEX,
+    /** The AsciiMath as written, for the hover preview. */
+    val original: String? = null,
+)
+
+enum class MathSource { LATEX, ASCIIMATH, ASCIIMATH_AUTO }
+
+/** What to look for. [accept] can reject an automatically found formula (for example one that wouldn't render). */
+class FindOptions(val markers: Boolean = true, val auto: Boolean = false, val accept: (String) -> Boolean = { true })
 
 /**
  * Finds `$...$`, `$$...$$`, `\(...\)` and `\[...\]` in comment text, using the rules Markdown maths uses, so that
@@ -15,16 +26,67 @@ data class MathSpan(val start: Int, val end: Int, val latex: String, val display
 object MathFinder {
     private const val MAX_LENGTH = 2000
 
-    fun find(text: CharSequence, comment: Comment): List<MathSpan> {
-        // The comment's text as one string, with each character's document offset.
+    fun find(text: CharSequence, comment: Comment, options: FindOptions = FindOptions()): List<MathSpan> {
+        val out = ArrayList<MathSpan>()
+        // Lines marked as AsciiMath ("//= ...", " * = ...") are whole formulas.
+        val rest = ArrayList<Segment>()
+        for (seg in comment.segments) {
+            val marked = if (options.markers) markedLine(text, seg, allowIndent = !comment.lineStyle) else null
+            if (marked != null) out.add(marked) else rest.add(seg)
+        }
+        if (rest.isEmpty()) return out
+        // The other lines as one string (so $$ can span lines), with each character's document offset.
         val sb = StringBuilder()
         val offsets = ArrayList<Int>()
-        comment.segments.forEachIndexed { idx, seg ->
+        rest.forEachIndexed { idx, seg ->
             if (idx > 0) { sb.append('\n'); offsets.add(seg.start) }
             for (k in seg.start until seg.end) { sb.append(text[k]); offsets.add(k) }
         }
-        offsets.add(comment.segments.lastOrNull()?.end ?: comment.end)
-        return findIn(sb, offsets)
+        offsets.add(rest.last().end)
+        val latex = findIn(sb, offsets)
+        out.addAll(latex)
+        // Optional: lines that are clearly maths though nobody marked them.
+        if (options.auto) {
+            for (seg in rest) {
+                if (latex.any { it.end > seg.start && it.start < seg.end }) continue
+                auto(text, seg, options)?.let { out.add(it) }
+            }
+        }
+        return out.sortedBy { it.start }
+    }
+
+    /**
+     * A line that starts with "= " right after the comment marker ("//= x^2"), or in a block or doc comment after
+     * its decoration (" * = x^2"), holds AsciiMath. "//=====" separator lines are not formulas (a space must follow).
+     */
+    internal fun markedLine(text: CharSequence, seg: Segment, allowIndent: Boolean): MathSpan? {
+        var k = seg.start
+        if (allowIndent) while (k < seg.end && (text[k] == ' ' || text[k] == '\t')) k++
+        if (k + 1 >= seg.end || text[k] != '=' || (text[k + 1] != ' ' && text[k + 1] != '\t')) return null
+        val eq = k
+        var a = k + 1
+        while (a < seg.end && text[a].isWhitespace()) a++
+        var b = seg.end
+        while (b > a && text[b - 1].isWhitespace()) b--
+        if (a >= b) return null
+        val source = text.subSequence(a, b).toString()
+        // "$" means LaTeX: such lines keep working exactly as before.
+        if (source.none { it.isLetterOrDigit() } || '$' in source) return null
+        return MathSpan(eq, b, dev.latexcomments.asciimath.AsciiMath.toLatex(source), display = true,
+            source = MathSource.ASCIIMATH, original = source)
+    }
+
+    private fun auto(text: CharSequence, seg: Segment, options: FindOptions): MathSpan? {
+        var a = seg.start
+        while (a < seg.end && text[a].isWhitespace()) a++
+        var b = seg.end
+        while (b > a && text[b - 1].isWhitespace()) b--
+        if (a >= b) return null
+        val source = text.subSequence(a, b).toString()
+        if (!MathGuess.looksLikeMaths(source)) return null
+        val latex = dev.latexcomments.asciimath.AsciiMath.toLatex(source)
+        if (!options.accept(latex)) return null
+        return MathSpan(a, b, latex, display = false, source = MathSource.ASCIIMATH_AUTO, original = source)
     }
 
     /** [offsets] has one more entry than [s] (the document offset just after the last character). */
